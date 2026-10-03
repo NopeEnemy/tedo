@@ -1,5 +1,5 @@
 # TEDO
-A simple tasks manager written in Rust for people how don't like GUIs and how want to learn Rust.
+A simple tasks manager written in Rust for people who don't like GUIs and who want to learn Rust.
 
 
 ### Compilling from sources:
