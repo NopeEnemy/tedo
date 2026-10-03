@@ -1,0 +1,10 @@
+[package]
+name = "tedo"
+version = "0.1.0"
+edition = "2024"
+about = "Tedo is a terminal TO-DO manager for people who don't like GUI"
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
