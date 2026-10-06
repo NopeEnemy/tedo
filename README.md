@@ -18,6 +18,12 @@ A simple tasks manager written in Rust for people who don't like GUIs and who wa
 
 ```tedo -r <TASK>``` --- Remove a task (requires a task number)
 
-```tedo -d```        --- Remove all completed tasks
+```tedo --remove-completed```        --- Remove all completed tasks
 
 ```tedo -c <TASK>``` --- Complete a task (requires a task number)
+
+```tedo -s <PROFILE>``` --- Set profile (requires a profile name)
+
+```tedo --remove-profile <PROFILE>``` --- Remove a profile (requires a profile name)
+
+```tedo -p``` --- list all profiles
