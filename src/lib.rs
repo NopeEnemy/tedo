@@ -1,55 +1,244 @@
 use std::{
     fmt::Display,
-    fs::{self, File},
+    fs::{self, File, create_dir_all},
     io::{Error, Read},
 };
 
 use clap::Parser;
+use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 
 #[derive(Debug, Parser)]
 #[command(about, version, long_about = None)]
 pub struct Args {
-    #[arg(short, long, help = "Add a task")]
+    #[arg(short, long, help = "Add a task", value_name = "TASK")]
     add: Option<String>,
 
     #[arg(short, long, help = "List all tasks")]
     list: bool,
 
-    #[arg(short, long, help = "Remove a task (requires a task number)")]
+    #[arg(
+        short,
+        long,
+        help = "Remove a task (requires a task number)",
+        value_name = "TASK"
+    )]
     remove: Option<usize>,
 
-    #[arg(short, long, help = "Remove all completed tasks")]
-    delete_completed: bool,
+    #[arg(long, help = "Remove all completed tasks")]
+    remove_completed: bool,
 
-    #[arg(short, long, help = "Complete a task (requires a task number)")]
+    #[arg(
+        short,
+        long,
+        help = "Complete a task (requires a task number)",
+        value_name = "TASK"
+    )]
     complete: Option<usize>,
+
+    #[arg(
+        short,
+        long,
+        help = "Set or create a profile (required a profile name)",
+        value_name = "PROFILE"
+    )]
+    set_profile: Option<String>,
+
+    #[arg(
+        long,
+        help = "Remove a profile profile (required a profile name)",
+        value_name = "PROFILE"
+    )]
+    remove_profile: Option<String>,
+
+    #[arg(long, short, help = "List all available profiles")]
+    profiles: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize)]
 struct ToDo {
     field: String,
     complete: bool,
 }
 
 impl ToDo {
-    fn new(s: String) -> ToDo {
+    fn new(s: &str) -> ToDo {
         Self {
-            field: s,
+            field: s.to_string(),
             complete: false,
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Profiles {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct Profile {
+    name: String,
     content: Vec<ToDo>,
 }
 
-impl Display for Profiles {
+#[derive(Debug, Serialize, Deserialize)]
+struct Save {
+    current_profile: usize,
+    profiles: Vec<Profile>,
+}
+
+impl Display for Save {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut str = String::new();
+        self.profiles[self.current_profile].fmt(f)
+    }
+}
+
+impl Save {
+    fn new() -> Self {
+        Self {
+            current_profile: 0,
+            profiles: vec![Profile::new("Tasks")],
+        }
+    }
+
+    fn add(&mut self, text: &str) {
+        self.profiles[self.current_profile]
+            .content
+            .push(ToDo::new(text));
+    }
+
+    fn load() -> Result<Save, Error> {
+        let dir = format!(
+            "{}/.local/share/tedo",
+            home_dir()
+                .expect("Can not find home directory:")
+                .as_path()
+                .to_str()
+                .expect("Can not parse path to home directory")
+        );
+
+        let path = format!("{dir}/save.json");
+
+        let file = File::open(&path);
+
+        let mut file = match file {
+            Ok(f) => f,
+            Err(_) => {
+                create_dir_all(dir)?;
+                File::create(&path)?;
+                File::open(&path)?
+            }
+        };
+
+        let mut save = String::new();
+        file.read_to_string(&mut save)?;
+
+        let save: Save = match from_str(&save) {
+            Ok(p) => p,
+            Err(_) => Save {
+                current_profile: 0,
+                profiles: vec![Profile::new("Tasks")],
+            },
+        };
+
+        Ok(save)
+    }
+
+    fn save(&self) -> Result<(), Error> {
+        let str = to_string(self)?;
+
+        let file = format!(
+            "{}/.local/share/tedo/save.json",
+            home_dir()
+                .expect("Can not find home directory:")
+                .as_path()
+                .to_str()
+                .expect("Can not parse path to home directory")
+        );
+
+        fs::write(file, str)?;
+
+        Ok(())
+    }
+
+    fn find_profile_num(&self, profile_name: &str) -> Option<usize> {
+        let mut i = 0;
+
+        for p in &self.profiles {
+            if p.name == profile_name {
+                return Some(i);
+            }
+            i += 1;
+        }
+
+        None
+    }
+
+    fn remove_profile(&mut self, profile_name: &str) {
+        let mut i = 0;
+
+        if self.profiles.len() > 2 {
+            return;
+        }
+
+        for p in &self.profiles {
+            if p.name == profile_name {
+                break;
+            }
+            i += 1;
+        }
+
+        self.profiles.remove(i);
+
+        if self.profiles.len() - 1 > self.current_profile {
+            self.current_profile -= 1;
+        }
+    }
+
+    fn set_profile(&mut self, profile_name: &str) {
+        if let Some(n) = self.find_profile_num(profile_name) {
+            self.current_profile = n;
+        } else {
+            let profile = Profile::new(profile_name);
+            self.profiles.push(profile);
+
+            if let Some(n) = self.find_profile_num(profile_name) {
+                self.current_profile = n;
+            }
+        }
+    }
+
+    fn remove(&mut self, i: usize) {
+        match self.profiles[self.current_profile].content.get(i) {
+            Some(_) => (),
+            None => return,
+        }
+
+        self.profiles[self.current_profile].content.remove(i);
+    }
+
+    fn remove_completed(&mut self) {
+        self.profiles[self.current_profile]
+            .content
+            .retain(|x| !x.complete);
+    }
+
+    fn complete(&mut self, i: usize) {
+        let target = match self.profiles[self.current_profile].content.get_mut(i) {
+            Some(t) => t,
+            None => return,
+        };
+
+        target.complete = !target.complete;
+    }
+
+    fn list_profiles(&self) {
+        println!("There are {} profiles:", self.profiles.len());
+        for i in &self.profiles {
+            println!("{}: {} tasks", i.name, i.content.len());
+        }
+    }
+}
+
+impl Display for Profile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut str = format!("Profile '{}':\n\n", self.name);
         let mut num = 0;
 
         for i in &self.content {
@@ -70,70 +259,17 @@ impl Display for Profiles {
     }
 }
 
-impl Profiles {
-    fn load() -> Result<Profiles, Error> {
-        let file = File::open("save.json");
-
-        let mut file = match file {
-            Ok(f) => f,
-            Err(_) => {
-                File::create("save.json")?;
-                File::open("save.json")?
-            }
-        };
-
-        let mut save = String::new();
-        file.read_to_string(&mut save)?;
-
-        let save: Profiles = match from_str(&save) {
-            Ok(p) => p,
-            Err(_) => Profiles { content: vec![] },
-        };
-
-        Ok(save)
-    }
-
-    fn save(&self) -> Result<(), Error> {
-        let str = to_string(self)?;
-        fs::write("save.json", str)?;
-
-        Ok(())
-    }
-
-    fn remove(&mut self, i: usize) {
-        if self.content.capacity() > i {
-            self.content.remove(i);
+impl Profile {
+    fn new(profile_name: &str) -> Self {
+        Self {
+            name: profile_name.to_string(),
+            content: vec![],
         }
-    }
-
-    fn remove_completed(&mut self) {
-        let mut n = 0;
-        let mut to_remove = Vec::new();
-
-        for i in &self.content {
-            if i.complete {
-                to_remove.push(n);
-            }
-            n += 1;
-        }
-
-        for i in to_remove {
-            self.remove(i);
-        }
-    }
-
-    fn complete(&mut self, i: usize) {
-        let target = match self.content.get_mut(i) {
-            Some(t) => t,
-            None => return,
-        };
-
-        target.complete = true;
     }
 }
 
 pub fn run(args: Args) {
-    let save = Profiles::load();
+    let save = Save::load();
 
     let mut command = false;
 
@@ -145,7 +281,7 @@ pub fn run(args: Args) {
     match args.add {
         Some(s) => {
             command = true;
-            save.content.push(ToDo::new(s));
+            save.add(&s);
         }
         None => (),
     }
@@ -163,7 +299,7 @@ pub fn run(args: Args) {
         None => (),
     }
 
-    if args.delete_completed {
+    if args.remove_completed {
         save.remove_completed();
         command = true;
     }
@@ -172,6 +308,27 @@ pub fn run(args: Args) {
         Some(i) => {
             command = true;
             save.complete(i)
+        }
+        None => (),
+    }
+
+    if args.profiles {
+        command = true;
+        save.list_profiles();
+    }
+
+    match args.set_profile {
+        Some(p) => {
+            save.set_profile(&p);
+            command = true
+        }
+        None => (),
+    }
+
+    match args.remove_profile {
+        Some(p) => {
+            save.remove_profile(&p);
+            command = true;
         }
         None => (),
     }
