@@ -90,13 +90,6 @@ impl Display for Save {
 }
 
 impl Save {
-    fn new() -> Self {
-        Self {
-            current_profile: 0,
-            profiles: vec![Profile::new("Tasks")],
-        }
-    }
-
     fn add(&mut self, text: &str) {
         self.profiles[self.current_profile]
             .content
