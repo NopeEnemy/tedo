@@ -33,14 +33,14 @@ pub struct Args {
     #[arg(
         short,
         long,
-        help = "Set or create a profile (required a profile name)",
+        help = "Set or create a profile (requires a profile name)",
         value_name = "PROFILE"
     )]
     set_profile: Option<String>,
 
     #[arg(
         long,
-        help = "Remove a profile profile (required a profile name)",
+        help = "Remove a profile (requires a profile name)",
         value_name = "PROFILE"
     )]
     remove_profile: Option<String>,

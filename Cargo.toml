@@ -1,6 +1,6 @@
 [package]
 name = "tedo"
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 about = "Tedo is a terminal TO-DO manager for people who don't like GUI"
 

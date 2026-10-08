@@ -116,23 +116,8 @@ impl Save {
     }
 
     pub fn remove_profile(&mut self, profile_name: &str) {
-        let mut i = 0;
-
-        if self.profiles.len() < 2 {
-            return;
-        }
-
-        for p in &self.profiles {
-            if p.name == profile_name {
-                break;
-            }
-            i += 1;
-        }
-
-        self.profiles.remove(i);
-
-        if self.profiles.len() >= self.current_profile {
-            self.current_profile -= 1;
+        if let Some(i) = self.find_profile_num(profile_name) {
+            self.profiles.remove(i);
         }
     }
 
