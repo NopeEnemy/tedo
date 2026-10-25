@@ -58,6 +58,5 @@ The app store all data in ~/.local/share/tedo/save.json file. Please do not chan
 - [X] TO-DO tasks
 - [X] Profiles
 - [ ] Configuration file
-- [ ] Tasks priorities
-- [ ] Points from completing tasks
+- [X] Tasks priorities
 - [ ] Timer for tasks
