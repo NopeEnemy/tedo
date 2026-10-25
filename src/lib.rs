@@ -1,125 +1,161 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use logic::Save;
+
 pub mod logic;
 
 #[derive(Debug, Parser)]
 #[command(about, version, long_about = None)]
 pub struct Args {
-    #[arg(short, long, help = "Add a task", value_name = "TASK")]
-    add: Option<String>,
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
 
-    #[arg(short, long, help = "List all tasks")]
-    list: bool,
+#[derive(Subcommand, Debug)]
+enum Commands {
+    #[command(about = "Actions with tasks")]
+    Tasks {
+        #[command(subcommand)]
+        command: Option<TaskCommands>,
+    },
 
-    #[arg(
-        short,
-        long,
-        help = "Remove a task (requires a task number)",
-        value_name = "TASK"
-    )]
-    remove: Option<usize>,
+    #[command(about = "Actions with profiles")]
+    Profiles {
+        #[command(subcommand)]
+        command: Option<ProfileCommands>,
+    },
+}
 
-    #[arg(long, help = "Remove all completed tasks")]
-    remove_completed: bool,
+#[derive(Debug, Subcommand)]
+enum ProfileCommands {
+    #[command(about = "Set or create a profile")]
+    Set {
+        #[arg(help = "Profile name", value_name = "PROFILE")]
+        set_profile: String,
+    },
 
-    #[arg(
-        short,
-        long,
-        help = "Complete a task (requires a task number)",
-        value_name = "TASK"
-    )]
-    complete: Option<usize>,
+    #[command(about = "Remove a profile")]
+    Remove {
+        #[arg(help = "Profile name", value_name = "PROFILE")]
+        remove_profile: String,
+    },
 
-    #[arg(
-        short,
-        long,
-        help = "Set or create a profile (requires a profile name)",
-        value_name = "PROFILE"
-    )]
-    set_profile: Option<String>,
+    #[command(about = "List all profiles")]
+    List,
+}
 
-    #[arg(
-        long,
-        help = "Remove a profile (requires a profile name)",
-        value_name = "PROFILE"
-    )]
-    remove_profile: Option<String>,
+#[derive(Debug, Subcommand)]
+enum TaskCommands {
+    #[command(about = "Add a task")]
+    Add {
+        #[arg(help = "Task name", value_name = "TASK")]
+        add: String,
 
-    #[arg(long, short, help = "List all available profiles")]
-    profiles: bool,
+        #[arg(
+            long,
+            short,
+            help = "Change task importance (requires a task number)",
+            default_value_t = 2
+        )]
+        importance: usize,
+    },
+
+    #[command(about = "Edit a task")]
+    Edit {
+        #[arg(help = "Text to change")]
+        edit: String,
+
+        #[arg(short, long, help = "Target task (requres a task number)")]
+        target: usize,
+
+        #[arg(long, short, help = "Change task importance (requires a task number)")]
+        importance: Option<usize>,
+    },
+
+    #[command(about = "Remove a task")]
+    Remove {
+        #[arg(short, long, help = "Task number", value_name = "TASK")]
+        remove: usize,
+    },
+
+    #[command(about = "Complete a task")]
+    Complete {
+        #[arg(help = "Task number", value_name = "TASK")]
+        complete: usize,
+    },
+
+    #[command(about = "List all tasks in current profile")]
+    List,
+
+    #[command(about = "Remove all completed tasks in current profile")]
+    RemoveCompleted,
+
+    #[command(about = "Remove all tasks in current profile")]
+    Clear,
 }
 
 pub fn run(args: Args) {
     let save = Save::load();
-
-    let mut command = false;
 
     let mut save = match save {
         Ok(s) => s,
         Err(e) => panic!("Error: {e}"),
     };
 
-    match args.add {
-        Some(s) => {
-            command = true;
-            save.add(&s);
+    let command = match args.command {
+        Some(c) => c,
+        None => {
+            println!("{save}");
+            return;
         }
-        None => (),
-    }
+    };
 
-    if args.list {
-        println!("{save}");
-        command = true;
-    }
-
-    match args.remove {
-        Some(i) => {
-            command = true;
-            save.remove(i)
-        }
-        None => (),
-    }
-
-    if args.remove_completed {
-        save.remove_completed();
-        command = true;
-    }
-
-    match args.complete {
-        Some(i) => {
-            command = true;
-            save.complete(i)
-        }
-        None => (),
-    }
-
-    if args.profiles {
-        command = true;
-        save.list_profiles();
-    }
-
-    match args.set_profile {
-        Some(p) => {
-            save.set_profile(&p);
-            command = true
-        }
-        None => (),
-    }
-
-    match args.remove_profile {
-        Some(p) => {
-            save.remove_profile(&p);
-            command = true;
-        }
-        None => (),
-    }
-
-    if !command {
-        println!("{save}");
+    match command {
+        Commands::Tasks { command } => task(&mut save, command),
+        Commands::Profiles { command } => profile(&mut save, command),
     }
 
     match save.save() {
         Ok(_) => (),
         Err(e) => println!("There is an error by saving: {e}"),
     };
+}
+
+fn task(save: &mut Save, commands: Option<TaskCommands>) {
+    let commands = match commands {
+        Some(c) => c,
+        None => {
+            println!("{save}");
+            return;
+        }
+    };
+
+    match commands {
+        TaskCommands::Add { add, importance } => save.add(&add, importance),
+        TaskCommands::Remove { remove } => save.remove(remove),
+        TaskCommands::Complete { complete } => save.complete(complete),
+        TaskCommands::Edit {
+            edit,
+            target,
+            importance,
+        } => save.edit(target, &edit, importance),
+        TaskCommands::List => println!("{save}"),
+        TaskCommands::Clear => save.clear(),
+        TaskCommands::RemoveCompleted => save.remove_completed(),
+    }
+}
+
+fn profile(save: &mut Save, commands: Option<ProfileCommands>) {
+    let commands = match commands {
+        Some(c) => c,
+        None => {
+            save.list_profiles();
+            return;
+        }
+    };
+
+    match commands {
+        ProfileCommands::List => save.list_profiles(),
+        ProfileCommands::Remove { remove_profile } => save.remove_profile(&remove_profile),
+        ProfileCommands::Set { set_profile } => save.set_profile(&set_profile),
+    }
 }

@@ -8,17 +8,50 @@ use std::{
     io::{Error, Read},
 };
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum Importance {
+    VeryHigh,
+    High,
+    Middle,
+    Low,
+    Zero,
+}
+
+impl Display for Importance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text;
+
+        match self {
+            Importance::VeryHigh => text = "A",
+            Importance::High => text = "B",
+            Importance::Middle => text = "C",
+            Importance::Low => text = "D",
+            Importance::Zero => text = "E",
+        }
+
+        write!(f, "{text}")
+    }
+}
+
 #[derive(Debug, Serialize, Clone, Deserialize)]
 struct ToDo {
     field: String,
     complete: bool,
+    importance: Importance,
 }
 
 impl ToDo {
-    fn new(s: &str) -> ToDo {
+    fn new(s: &str, importance: usize) -> ToDo {
         Self {
             field: s.to_string(),
             complete: false,
+            importance: match importance {
+                0 => Importance::Zero,
+                1 => Importance::Low,
+                2 => Importance::Middle,
+                3 => Importance::High,
+                _ => Importance::VeryHigh,
+            },
         }
     }
 }
@@ -42,10 +75,40 @@ impl Display for Save {
 }
 
 impl Save {
-    pub fn add(&mut self, text: &str) {
+    pub fn add(&mut self, text: &str, importance: usize) {
         self.profiles[self.current_profile]
             .content
-            .push(ToDo::new(text));
+            .push(ToDo::new(text, importance));
+    }
+
+    pub fn edit(&mut self, target: usize, text: &str, importance: Option<usize>) {
+        match self.profiles[self.current_profile].content.get_mut(target) {
+            Some(t) => t.field = text.to_string(),
+            None => self.profiles[self.current_profile].content.push(ToDo::new(
+                text,
+                match importance {
+                    Some(i) => i,
+                    None => 2,
+                },
+            )),
+        }
+    }
+
+    pub fn importance(&mut self, target: usize, importance: usize) {
+        let target = match self.profiles[self.current_profile].content.get_mut(target) {
+            Some(t) => t,
+            None => return,
+        };
+
+        let importance = match importance {
+            0 => Importance::Zero,
+            1 => Importance::Low,
+            2 => Importance::Middle,
+            3 => Importance::High,
+            _ => Importance::VeryHigh,
+        };
+
+        target.importance = importance;
     }
 
     pub fn load() -> Result<Save, Error> {
@@ -164,6 +227,10 @@ impl Save {
             println!("{}: {} tasks", i.name, i.content.len());
         }
     }
+
+    pub fn clear(&mut self) {
+        self.profiles[self.current_profile].content = vec![];
+    }
 }
 
 impl Display for Profile {
@@ -178,7 +245,7 @@ impl Display for Profile {
                 "[   ]".to_string()
             };
 
-            let buf = format!("{num}. {buf} {}\n", i.field);
+            let buf = format!("{num}. {} {buf} {}\n", i.importance, i.field);
 
             str.push_str(&buf);
 

@@ -25,23 +25,25 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 ## Usage
 ```tedo -h```        --- Print help
 
-```tedo -a <TASK>``` --- Add a task
+```tedo tasks add <TASK>``` --- Add a task
 
-```tedo -l```        --- List all tasks
+```tedo```        --- List all tasks
 
-```tedo -r <TASK>``` --- Remove a task (requires a task number)
+```tedo tasks remove <TASK>``` --- Remove a task (requires a task number)
 
-```tedo --remove-completed```        --- Remove all completed tasks
+```tedo tasks remove-completed```        --- Remove all completed tasks
 
-```tedo -c <TASK>``` --- Complete a task (requires a task number)
+```tedo tasks complete <TASK>``` --- Complete a task (requires a task number)
 
-```tedo -s <PROFILE>``` --- Set profile (requires a profile name)
+```tedo profiles set <PROFILE>``` --- Set profile (requires a profile name)
 
-```tedo --remove-profile <PROFILE>``` --- Remove a profile (requires a profile name)
+```tedo profiles remove <PROFILE>``` --- Remove a profile (requires a profile name)
 
-```tedo -p``` --- list all profiles
+```tedo profiles``` --- list all profiles
 
-```tedo --clear``` --- Clear current profile
+```tedo tasks clear``` --- Clear current profile
+
+```tedo tasks edit <TASK>``` --- Edit a task (requires a task number)
 
 
 ## Profiles
