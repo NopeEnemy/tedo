@@ -54,9 +54,15 @@ You can collect tasks into *profiles*. This can be very helpful, if you want to 
 The app store all data in ~/.local/share/tedo/save.json file. Please do not change this file, if you don't know what you doing. This can broke it and lead to a loss all data.
 
 
+## Configuration
+You can configure few setting in ~/.config/tedo/config.toml file. Yet you can configure only 2 parameters (I implement more in future): 
+show_importance = [true/false] # Show importance, when listing all tasks. Default: true
+numerate_from_zero = [true/false] # Numerate from zero. Default: false
+
+
 ## Roadmap
 - [X] TO-DO tasks
 - [X] Profiles
-- [ ] Configuration file
+- [X] Configuration file
 - [X] Tasks priorities
 - [ ] Timer for tasks

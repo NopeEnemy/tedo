@@ -17,6 +17,18 @@ pub enum Importance {
     Zero,
 }
 
+impl Importance {
+    pub fn new(importance: usize) -> Self {
+        match importance {
+            0 => Importance::Zero,
+            1 => Importance::Low,
+            2 => Importance::Middle,
+            3 => Importance::High,
+            _ => Importance::VeryHigh,
+        }
+    }
+}
+
 impl Display for Importance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let text;
@@ -45,13 +57,7 @@ impl ToDo {
         Self {
             field: s.to_string(),
             complete: false,
-            importance: match importance {
-                0 => Importance::Zero,
-                1 => Importance::Low,
-                2 => Importance::Middle,
-                3 => Importance::High,
-                _ => Importance::VeryHigh,
-            },
+            importance: Importance::new(importance),
         }
     }
 }
@@ -62,29 +68,59 @@ struct Profile {
     content: Vec<ToDo>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Save {
-    current_profile: usize,
-    profiles: Vec<Profile>,
-}
+impl Profile {
+    fn list(&self, show_importance: bool, numerate_from_zero: bool) {
+        let mut str = format!("Profile '{}':\n\n", self.name);
+        let mut num = if numerate_from_zero { 0 } else { 1 };
 
-impl Display for Save {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.profiles[self.current_profile].fmt(f)
+        for i in &self.content {
+            let buf = if i.complete {
+                "[ X ]".to_string()
+            } else {
+                "[   ]".to_string()
+            };
+
+            let buf = if show_importance {
+                format!("{num}. {} {buf} {}\n", i.importance, i.field)
+            } else {
+                format!("{num}. {buf} {}\n", i.field)
+            };
+
+            str.push_str(&buf);
+
+            num += 1;
+        }
+
+        println!("{str}");
     }
-}
 
-impl Save {
     pub fn add(&mut self, text: &str, importance: usize) {
-        self.profiles[self.current_profile]
-            .content
-            .push(ToDo::new(text, importance));
+        self.content.push(ToDo::new(text, importance));
     }
 
-    pub fn edit(&mut self, target: usize, text: &str, importance: Option<usize>) {
-        match self.profiles[self.current_profile].content.get_mut(target) {
-            Some(t) => t.field = text.to_string(),
-            None => self.profiles[self.current_profile].content.push(ToDo::new(
+    pub fn edit(
+        &mut self,
+        target: usize,
+        text: &str,
+        importance: Option<usize>,
+        numerate_from_zero: bool,
+    ) {
+        let target = if numerate_from_zero {
+            target
+        } else {
+            target - 1
+        };
+        match self.content.get_mut(target) {
+            Some(t) => {
+                let stored = t.importance.clone();
+
+                t.field = text.to_string();
+                t.importance = match importance {
+                    Some(i) => Importance::new(i),
+                    None => stored,
+                }
+            }
+            None => self.content.push(ToDo::new(
                 text,
                 match importance {
                     Some(i) => i,
@@ -94,8 +130,14 @@ impl Save {
         }
     }
 
-    pub fn importance(&mut self, target: usize, importance: usize) {
-        let target = match self.profiles[self.current_profile].content.get_mut(target) {
+    pub fn importance(&mut self, target: usize, importance: usize, numerate_from_zero: bool) {
+        let target = if numerate_from_zero {
+            target
+        } else {
+            target - 1
+        };
+
+        let target = match self.content.get_mut(target) {
             Some(t) => t,
             None => return,
         };
@@ -110,6 +152,93 @@ impl Save {
 
         target.importance = importance;
     }
+
+    pub fn remove(&mut self, target: usize, numerate_from_zero: bool) {
+        let target = if numerate_from_zero {
+            target
+        } else {
+            target - 1
+        };
+        match self.content.get(target) {
+            Some(_) => (),
+            None => return,
+        }
+
+        self.content.remove(target);
+    }
+
+    pub fn remove_completed(&mut self) {
+        self.content.retain(|x| !x.complete);
+    }
+
+    pub fn complete(&mut self, target: usize, numerate_from_zero: bool) {
+        let target = if numerate_from_zero {
+            target
+        } else {
+            target - 1
+        };
+
+        let target = match self.content.get_mut(target) {
+            Some(t) => t,
+            None => return,
+        };
+
+        target.complete = !target.complete;
+    }
+
+    pub fn clear(&mut self) {
+        self.content = vec![];
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Save {
+    current_profile: usize,
+    profiles: Vec<Profile>,
+}
+
+impl Save {
+    // Actions with current profile:
+
+    pub fn list(&self, show_importance: bool, numerate_from_zero: bool) {
+        self.profiles[self.current_profile].list(show_importance, numerate_from_zero);
+    }
+
+    pub fn add(&mut self, text: &str, importance: usize) {
+        self.profiles[self.current_profile].add(text, importance);
+    }
+
+    pub fn edit(
+        &mut self,
+        target: usize,
+        text: &str,
+        importance: Option<usize>,
+        numerate_from_zero: bool,
+    ) {
+        self.profiles[self.current_profile].edit(target, text, importance, numerate_from_zero);
+    }
+
+    pub fn importance(&mut self, target: usize, importance: usize, numerate_from_zero: bool) {
+        self.profiles[self.current_profile].importance(target, importance, numerate_from_zero);
+    }
+
+    pub fn remove(&mut self, i: usize, numerate_from_zero: bool) {
+        self.profiles[self.current_profile].remove(i, numerate_from_zero);
+    }
+
+    pub fn remove_completed(&mut self) {
+        self.profiles[self.current_profile].remove_completed();
+    }
+
+    pub fn complete(&mut self, i: usize, numerate_from_zero: bool) {
+        self.profiles[self.current_profile].complete(i, numerate_from_zero);
+    }
+
+    pub fn clear(&mut self) {
+        self.profiles[self.current_profile].clear();
+    }
+
+    // Load & Save:
 
     pub fn load() -> Result<Save, Error> {
         let dir = format!(
@@ -165,6 +294,8 @@ impl Save {
         Ok(())
     }
 
+    // Actions with all profiles:
+
     fn find_profile_num(&self, profile_name: &str) -> Option<usize> {
         let mut i = 0;
 
@@ -197,62 +328,11 @@ impl Save {
         }
     }
 
-    pub fn remove(&mut self, i: usize) {
-        match self.profiles[self.current_profile].content.get(i) {
-            Some(_) => (),
-            None => return,
-        }
-
-        self.profiles[self.current_profile].content.remove(i);
-    }
-
-    pub fn remove_completed(&mut self) {
-        self.profiles[self.current_profile]
-            .content
-            .retain(|x| !x.complete);
-    }
-
-    pub fn complete(&mut self, i: usize) {
-        let target = match self.profiles[self.current_profile].content.get_mut(i) {
-            Some(t) => t,
-            None => return,
-        };
-
-        target.complete = !target.complete;
-    }
-
     pub fn list_profiles(&self) {
         println!("There are {} profiles:", self.profiles.len());
         for i in &self.profiles {
             println!("{}: {} tasks", i.name, i.content.len());
         }
-    }
-
-    pub fn clear(&mut self) {
-        self.profiles[self.current_profile].content = vec![];
-    }
-}
-
-impl Display for Profile {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut str = format!("Profile '{}':\n\n", self.name);
-        let mut num = 0;
-
-        for i in &self.content {
-            let buf = if i.complete {
-                "[ X ]".to_string()
-            } else {
-                "[   ]".to_string()
-            };
-
-            let buf = format!("{num}. {} {buf} {}\n", i.importance, i.field);
-
-            str.push_str(&buf);
-
-            num += 1;
-        }
-
-        write!(f, "{str}")
     }
 }
 
@@ -261,6 +341,43 @@ impl Profile {
         Self {
             name: profile_name.to_string(),
             content: vec![],
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct Config {
+    pub show_importance: Option<bool>,
+    pub numerate_from_zero: Option<bool>,
+}
+
+impl Config {
+    pub fn load() -> Self {
+        let path = format!(
+            "{}/.config/tedo/config.toml",
+            home_dir()
+                .expect("Can not find home dir")
+                .to_str()
+                .expect("Can not parse home dir")
+        );
+
+        let file = File::open(path);
+
+        let mut file = match file {
+            Ok(f) => f,
+            Err(_) => return Config::default(),
+        };
+
+        let mut config = String::new();
+        file.read_to_string(&mut config)
+            .expect("Can not read config file!");
+
+        match toml::from_str(&config) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Can not parse config:\n{e}\nUsing default config.\n\n");
+                Config::default()
+            }
         }
     }
 }
