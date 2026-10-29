@@ -189,6 +189,20 @@ impl Profile {
     pub fn clear(&mut self) {
         self.content = vec![];
     }
+
+    pub fn complete_all(&mut self) {
+        self.content.iter_mut().for_each(|t| t.complete = true);
+    }
+
+    pub fn decomplete_all(&mut self) {
+        self.content.iter_mut().for_each(|t| t.complete = false);
+    }
+
+    pub fn change_all(&mut self) {
+        self.content
+            .iter_mut()
+            .for_each(|t| t.complete = !t.complete);
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -236,6 +250,18 @@ impl Save {
 
     pub fn clear(&mut self) {
         self.profiles[self.current_profile].clear();
+    }
+
+    pub fn complete_all(&mut self) {
+        self.profiles[self.current_profile].complete_all();
+    }
+
+    pub fn decomplete_all(&mut self) {
+        self.profiles[self.current_profile].decomplete_all();
+    }
+
+    pub fn change_all(&mut self) {
+        self.profiles[self.current_profile].change_all();
     }
 
     // Load & Save:
@@ -347,8 +373,10 @@ impl Profile {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Config {
-    pub show_importance: Option<bool>,
-    pub numerate_from_zero: Option<bool>,
+    #[serde(default)]
+    pub show_importance: bool,
+    #[serde(default)]
+    pub numerate_from_zero: bool,
 }
 
 impl Config {

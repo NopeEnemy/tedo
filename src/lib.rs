@@ -93,6 +93,15 @@ enum TaskCommands {
 
     #[command(about = "Remove all tasks in current profile")]
     Clear,
+
+    #[command(about = "Complete all tasks")]
+    CompleteAll,
+
+    #[command(about = "Decomplete all tasks")]
+    DecompleteAll,
+
+    #[command(about = "Reverse importance from all tasks")]
+    ChangeAll,
 }
 
 pub fn run(args: Args) {
@@ -107,17 +116,14 @@ pub fn run(args: Args) {
     let command = match args.command {
         Some(c) => c,
         None => {
-            save.list(
-                config.show_importance.unwrap_or(true),
-                config.numerate_from_zero.unwrap_or_default(),
-            );
+            save.list(config.show_importance, config.numerate_from_zero);
             return;
         }
     };
 
     match command {
         Commands::Tasks { command } => task(&mut save, command, config),
-        Commands::Profiles { command } => profile(&mut save, command, config),
+        Commands::Profiles { command } => profile(&mut save, command),
     }
 
     match save.save() {
@@ -127,34 +133,33 @@ pub fn run(args: Args) {
 }
 
 fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config) {
-    let numerate_from_zero = config.numerate_from_zero.unwrap_or_default();
-
-    let show_importance = config.show_importance.unwrap_or(true);
-
     let commands = match commands {
         Some(c) => c,
         None => {
-            save.list(show_importance, numerate_from_zero);
+            save.list(config.show_importance, config.numerate_from_zero);
             return;
         }
     };
 
     match commands {
         TaskCommands::Add { add, importance } => save.add(&add, importance),
-        TaskCommands::Remove { remove } => save.remove(remove, numerate_from_zero),
-        TaskCommands::Complete { complete } => save.complete(complete, numerate_from_zero),
+        TaskCommands::Remove { remove } => save.remove(remove, config.numerate_from_zero),
+        TaskCommands::Complete { complete } => save.complete(complete, config.numerate_from_zero),
         TaskCommands::Edit {
             edit,
             target,
             importance,
-        } => save.edit(target, &edit, importance, numerate_from_zero),
-        TaskCommands::List => save.list(show_importance, numerate_from_zero),
+        } => save.edit(target, &edit, importance, config.numerate_from_zero),
+        TaskCommands::List => save.list(config.show_importance, config.numerate_from_zero),
         TaskCommands::Clear => save.clear(),
         TaskCommands::RemoveCompleted => save.remove_completed(),
+        TaskCommands::CompleteAll => save.complete_all(),
+        TaskCommands::DecompleteAll => save.decomplete_all(),
+        TaskCommands::ChangeAll => save.change_all(),
     }
 }
 
-fn profile(save: &mut Save, commands: Option<ProfileCommands>, config: Config) {
+fn profile(save: &mut Save, commands: Option<ProfileCommands>) {
     let commands = match commands {
         Some(c) => c,
         None => {

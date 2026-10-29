@@ -43,7 +43,7 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 
 ```tedo tasks clear``` --- Clear current profile
 
-```tedo tasks edit <TASK>``` --- Edit a task (requires a task number)
+```tedo tasks edit -t <TARGET> <TEXT>``` --- Edit a task (requires a task number)
 
 
 ## Profiles
@@ -56,7 +56,7 @@ The app store all data in ~/.local/share/tedo/save.json file. Please do not chan
 
 ## Configuration
 You can configure few setting in ~/.config/tedo/config.toml file. Yet you can configure only 2 parameters (I implement more in future): 
-show_importance = [true/false] # Show importance, when listing all tasks. Default: true
+show_importance = [true/false] # Show importance, when listing all tasks. Default: false
 numerate_from_zero = [true/false] # Numerate from zero. Default: false
 
 
