@@ -3,23 +3,23 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 
 
 ## Features
-- Add, coplete and remove tasks
+- Add, complete and remove tasks
 - Multiple profiles
 - JSON storage
-- Lighteight CLI
+- Lightweight CLI
 
 
 ## Installation
 
 ### Prebuilt binary
 1. Go to the latest [release](https://github.com/NopeEnemy/tedo/releases)
-2. Download bin file
+2. Download the binary
 
 ### From source
 1. Download Rust
 2. Clone this repo
 3. Run ```cargo build --release```
-4. Get the binary from target/release
+4. The binary will be available in target/release/
 
 
 ## Usage
@@ -47,15 +47,15 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 
 
 ## Profiles
-You can collect tasks into *profiles*. This can be very helpful, if you want to devide tasks. For example work and personal tasks. 
+You can collect tasks into *profiles*. This can be very helpful, if you want to divide tasks. For example work and personal tasks. 
 
 
 ## Storage
-The app store all data in ~/.local/share/tedo/save.json file. Please do not change this file, if you don't know what you doing. This can broke it and lead to a loss all data.
+The app stores all data in ~/.local/share/tedo/save.json file. Please do not change this file, if you don't know what you're doing. This can break it and lead to a loss all data.
 
 
 ## Configuration
-You can configure few setting in ~/.config/tedo/config.toml file. Yet you can configure only 2 parameters (I implement more in future): 
+You can configure a few setting in ~/.config/tedo/config.toml file. Yet you can configure only 2 parameters (I plan to add more in the future): 
 show_importance = [true/false] # Show importance, when listing all tasks. Default: false
 numerate_from_zero = [true/false] # Numerate from zero. Default: false
 
