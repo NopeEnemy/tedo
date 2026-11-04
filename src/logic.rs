@@ -5,7 +5,7 @@ use serde_json::{from_str, to_string};
 use std::{
     fmt::Display,
     fs::{self, File, create_dir_all},
-    io::{Error, Read},
+    io::{Error, ErrorKind, Read},
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -282,10 +282,15 @@ impl Save {
 
         let mut file = match file {
             Ok(f) => f,
-            Err(_) => {
-                create_dir_all(dir)?;
-                File::create(&path)?;
-                File::open(&path)?
+            Err(e) => {
+                if e.kind() == ErrorKind::NotFound {
+                    create_dir_all(dir)?;
+                    File::create(&path)?;
+                    File::open(&path)?
+                } else {
+                    eprint!("Cannot parse data, maybe save.json is broken: {e}");
+                    panic!();
+                }
             }
         };
 
@@ -294,10 +299,10 @@ impl Save {
 
         let save: Save = match from_str(&save) {
             Ok(p) => p,
-            Err(_) => Save {
-                current_profile: 0,
-                profiles: vec![Profile::new("Tasks")],
-            },
+            Err(e) => {
+                eprint!("Cannot parse data, maybe save.json is broken: {e}");
+                panic!();
+            }
         };
 
         Ok(save)
