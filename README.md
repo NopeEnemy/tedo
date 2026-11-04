@@ -60,6 +60,10 @@ show_importance = [true/false] # Show importance, when listing all tasks. Defaul
 numerate_from_zero = [true/false] # Numerate from zero. Default: false
 
 
+## Bugs or suggestions
+If you found a bug or have a suggestion you can create an [issue](https://github.com/NopeEnemy/tedo/issues)
+
+
 ## Roadmap
 - [X] TO-DO tasks
 - [X] Profiles

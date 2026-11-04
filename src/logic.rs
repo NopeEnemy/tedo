@@ -110,6 +110,7 @@ impl Profile {
         } else {
             target - 1
         };
+
         match self.content.get_mut(target) {
             Some(t) => {
                 let stored = t.importance.clone();
@@ -120,13 +121,7 @@ impl Profile {
                     None => stored,
                 }
             }
-            None => self.content.push(ToDo::new(
-                text,
-                match importance {
-                    Some(i) => i,
-                    None => 2,
-                },
-            )),
+            None => eprintln!("Can not find a task with this number"),
         }
     }
 
@@ -142,13 +137,7 @@ impl Profile {
             None => return,
         };
 
-        let importance = match importance {
-            0 => Importance::Zero,
-            1 => Importance::Low,
-            2 => Importance::Middle,
-            3 => Importance::High,
-            _ => Importance::VeryHigh,
-        };
+        let importance = Importance::new(importance);
 
         target.importance = importance;
     }
@@ -159,9 +148,10 @@ impl Profile {
         } else {
             target - 1
         };
+
         match self.content.get(target) {
             Some(_) => (),
-            None => return,
+            None => eprintln!("Can not find a task with this number"),
         }
 
         self.content.remove(target);
@@ -180,7 +170,10 @@ impl Profile {
 
         let target = match self.content.get_mut(target) {
             Some(t) => t,
-            None => return,
+            None => {
+                eprintln!("Can not find a task with this number");
+                return;
+            }
         };
 
         target.complete = !target.complete;
@@ -343,6 +336,8 @@ impl Save {
     pub fn remove_profile(&mut self, profile_name: &str) {
         if let Some(i) = self.find_profile_num(profile_name) {
             self.profiles.remove(i);
+        } else {
+            eprintln!("Can not find a profile with this number")
         }
     }
 
