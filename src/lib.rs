@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use logic::Save;
+use std::process;
 
 use crate::logic::Config;
 
@@ -10,6 +11,9 @@ pub mod logic;
 pub struct Args {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    #[arg(short, long, help = "Another path to the config file")]
+    config: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -52,19 +56,14 @@ enum TaskCommands {
         #[arg(help = "Task name", value_name = "TASK")]
         add: String,
 
-        #[arg(
-            long,
-            short,
-            help = "Change task importance (requires a task number)",
-            default_value_t = 2
-        )]
-        importance: usize,
+        #[arg(long, short, help = "Change task importance (requires a task number)")]
+        importance: Option<usize>,
     },
 
     #[command(about = "Edit a task")]
     Edit {
         #[arg(help = "Text to change")]
-        edit: String,
+        edit: Option<String>,
 
         #[arg(short, long, help = "Target task (requres a task number)")]
         target: usize,
@@ -106,12 +105,16 @@ enum TaskCommands {
 
 pub fn run(args: Args) {
     let save = Save::load();
-    let config = Config::load();
 
     let mut save = match save {
         Ok(s) => s,
-        Err(e) => panic!("Error: {e}"),
+        Err(e) => {
+            eprintln!("Can not load your data, error: {e}");
+            process::exit(1);
+        }
     };
+
+    let config = Config::load(args.config);
 
     let command = match args.command {
         Some(c) => c,
@@ -142,14 +145,20 @@ fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config) {
     };
 
     match commands {
-        TaskCommands::Add { add, importance } => save.add(&add, importance),
+        TaskCommands::Add { add, importance } => save.add(
+            &add,
+            match importance {
+                Some(i) => i,
+                None => config.default_importance,
+            },
+        ),
         TaskCommands::Remove { remove } => save.remove(remove, config.numerate_from_zero),
         TaskCommands::Complete { complete } => save.complete(complete, config.numerate_from_zero),
         TaskCommands::Edit {
             edit,
             target,
             importance,
-        } => save.edit(target, &edit, importance, config.numerate_from_zero),
+        } => save.edit(target, edit, importance, config.numerate_from_zero),
         TaskCommands::List => save.list(config.show_importance, config.numerate_from_zero),
         TaskCommands::Clear => save.clear(),
         TaskCommands::RemoveCompleted => save.remove_completed(),

@@ -1,6 +1,7 @@
 use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
+use std::process;
 
 use std::{
     fmt::Display,
@@ -101,7 +102,7 @@ impl Profile {
     pub fn edit(
         &mut self,
         target: usize,
-        text: &str,
+        text: Option<String>,
         importance: Option<usize>,
         numerate_from_zero: bool,
     ) {
@@ -113,12 +114,12 @@ impl Profile {
 
         match self.content.get_mut(target) {
             Some(t) => {
-                let stored = t.importance.clone();
+                if let Some(nt) = text {
+                    t.field = nt;
+                }
 
-                t.field = text.to_string();
-                t.importance = match importance {
-                    Some(i) => Importance::new(i),
-                    None => stored,
+                if let Some(i) = importance {
+                    t.importance = Importance::new(i);
                 }
             }
             None => eprintln!("Can not find a task with this number"),
@@ -218,7 +219,7 @@ impl Save {
     pub fn edit(
         &mut self,
         target: usize,
-        text: &str,
+        text: Option<String>,
         importance: Option<usize>,
         numerate_from_zero: bool,
     ) {
@@ -282,7 +283,7 @@ impl Save {
                     File::open(&path)?
                 } else {
                     eprint!("Cannot parse data, maybe save.json is broken: {e}");
-                    panic!();
+                    process::exit(1);
                 }
             }
         };
@@ -294,7 +295,7 @@ impl Save {
             Ok(p) => p,
             Err(e) => {
                 eprint!("Cannot parse data, maybe save.json is broken: {e}");
-                panic!();
+                process::exit(1);
             }
         };
 
@@ -334,7 +335,14 @@ impl Save {
     }
 
     pub fn remove_profile(&mut self, profile_name: &str) {
+        if self.profiles.len() < 2 {
+            eprintln!("Can not remove latest profile");
+        }
+
         if let Some(i) = self.find_profile_num(profile_name) {
+            if self.current_profile <= i {
+                self.current_profile -= 1;
+            }
             self.profiles.remove(i);
         } else {
             eprintln!("Can not find a profile with this number")
@@ -373,22 +381,26 @@ impl Profile {
 
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct Config {
-    #[serde(default)]
+    #[serde(default = "config_true")]
     pub show_importance: bool,
     #[serde(default)]
     pub numerate_from_zero: bool,
+    #[serde(default = "config_importance")]
+    pub default_importance: usize,
 }
 
 impl Config {
-    pub fn load() -> Self {
-        let path = format!(
-            "{}/.config/tedo/config.toml",
-            home_dir()
-                .expect("Can not find home dir")
-                .to_str()
-                .expect("Can not parse home dir")
-        );
-
+    pub fn load(path: Option<String>) -> Self {
+        let path = match path {
+            Some(p) => p,
+            None => format!(
+                "{}/.config/tedo/config.toml",
+                home_dir()
+                    .expect("Can not find home dir")
+                    .to_str()
+                    .expect("Can not parse home dir")
+            ),
+        };
         let file = File::open(path);
 
         let mut file = match file {
@@ -408,4 +420,12 @@ impl Config {
             }
         }
     }
+}
+
+fn config_true() -> bool {
+    true
+}
+
+fn config_importance() -> usize {
+    2
 }

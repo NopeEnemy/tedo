@@ -1,7 +1,17 @@
 [package]
 name = "tedo"
-version = "1.4.0"
+version = "1.5.0"
 edition = "2024"
+description = "Tedo is a simple terminal TO-DO manager for people who don't like GUIs."
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/NopeEnemy/tedo"
+keywords = ["cli", "tool", "to-do", "tasks"]
+categories = ["command-line-utilities"]
+
+[[bin]]
+name = "tedo"
+path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }

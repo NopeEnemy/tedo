@@ -6,6 +6,7 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 - Add, complete and remove tasks
 - Multiple profiles
 - JSON storage
+- TOML config file
 - Lightweight CLI
 
 
@@ -21,6 +22,8 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 3. Run ```cargo build --release```
 4. The binary will be available in target/release/
 
+### With Cargo:
+1. Run ```cargo install tedo```
 
 ## Usage
 ```tedo -h```        --- Print help
@@ -56,8 +59,9 @@ The app stores all data in ~/.local/share/tedo/save.json file. Please do not cha
 
 ## Configuration
 You can configure a few setting in ~/.config/tedo/config.toml file. Yet you can configure only 2 parameters (I plan to add more in the future): 
-show_importance = [true/false] # Show importance, when listing all tasks. Default: false
-numerate_from_zero = [true/false] # Numerate from zero. Default: false
+show_importance = [true/false] # Default: true
+numerate_from_zero = [true/false] # Default: false
+default_importance = [0-5] # Default: 2, the grater the number, the greater the importance.
 
 
 ## Bugs or suggestions
