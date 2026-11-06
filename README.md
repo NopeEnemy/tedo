@@ -11,6 +11,7 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 
 
 ## Installation
+WARNING: I don't test Windows builds, if you found there a bug, please make an issue.
 
 ### Prebuilt binary
 1. Go to the latest [release](https://github.com/NopeEnemy/tedo/releases)
@@ -24,6 +25,7 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 
 ### With Cargo:
 1. Run ```cargo install tedo```
+
 
 ## Usage
 ```tedo -h```        --- Print help

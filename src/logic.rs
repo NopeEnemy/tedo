@@ -1,4 +1,3 @@
-use dirs::home_dir;
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 use std::process;
@@ -152,7 +151,10 @@ impl Profile {
 
         match self.content.get(target) {
             Some(_) => (),
-            None => eprintln!("Can not find a task with this number"),
+            None => {
+                eprintln!("Can not find a task with this number");
+                process::exit(1);
+            }
         }
 
         self.content.remove(target);
@@ -259,25 +261,23 @@ impl Save {
     }
 
     // Load & Save:
+    pub fn new() -> Self {
+        Self {
+            current_profile: 0,
+            profiles: vec![Profile::new("Tasks")],
+        }
+    }
 
     pub fn load() -> Result<Save, Error> {
-        let dir = format!(
-            "{}/.local/share/tedo",
-            home_dir()
-                .expect("Can not find home directory:")
-                .as_path()
-                .to_str()
-                .expect("Can not parse path to home directory")
-        );
+        let dir = dirs::data_local_dir()
+            .expect("Can not get data dir")
+            .join("tedo");
+        let path = dir.join("save.json");
 
-        let path = format!("{dir}/save.json");
-
-        let file = File::open(&path);
-
-        let mut file = match file {
+        let mut file = match File::open(&path) {
             Ok(f) => f,
             Err(e) => {
-                if e.kind() == ErrorKind::NotFound {
+                if e.kind() == ErrorKind::NotFound || e.kind() == ErrorKind::UnexpectedEof {
                     create_dir_all(dir)?;
                     File::create(&path)?;
                     File::open(&path)?
@@ -294,8 +294,12 @@ impl Save {
         let save: Save = match from_str(&save) {
             Ok(p) => p,
             Err(e) => {
-                eprint!("Cannot parse data, maybe save.json is broken: {e}");
-                process::exit(1);
+                if e.is_eof() {
+                    Save::new()
+                } else {
+                    eprint!("Cannot parse data, maybe save.json is broken: {e}");
+                    process::exit(1);
+                }
             }
         };
 
@@ -304,15 +308,10 @@ impl Save {
 
     pub fn save(&self) -> Result<(), Error> {
         let str = to_string(self)?;
-
-        let file = format!(
-            "{}/.local/share/tedo/save.json",
-            home_dir()
-                .expect("Can not find home directory:")
-                .as_path()
-                .to_str()
-                .expect("Can not parse path to home directory")
-        );
+        let file = dirs::data_local_dir()
+            .expect("Can not get data dir")
+            .join("tedo")
+            .join("save.json");
 
         fs::write(file, str)?;
 
@@ -393,14 +392,14 @@ impl Config {
     pub fn load(path: Option<String>) -> Self {
         let path = match path {
             Some(p) => p,
-            None => format!(
-                "{}/.config/tedo/config.toml",
-                home_dir()
-                    .expect("Can not find home dir")
-                    .to_str()
-                    .expect("Can not parse home dir")
-            ),
+            None => dirs::preference_dir()
+                .expect("Can not find configs dir")
+                .join("tedo")
+                .join("config.toml")
+                .into_string()
+                .expect("Can not parse path to the configs directory"),
         };
+
         let file = File::open(path);
 
         let mut file = match file {
