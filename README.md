@@ -1,3 +1,6 @@
+[![crates.io](https://img.shields.io/crates/v/tedo.svg)](https://crates.io/crates/tedo)
+[![crates.io](https://img.shields.io/crates/d/tedo.svg)](https://crates.io/crates/tedo)
+
 # TEDO
 A simple terminal-based task manager written in Rust for people who prefer the command line over GUIs.
 

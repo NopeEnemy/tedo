@@ -1,10 +1,12 @@
+use crate::core::{config::Config, save::Save};
 use clap::{Parser, Subcommand};
-use logic::Save;
 use std::process;
 
-use crate::logic::Config;
-
-pub mod logic;
+pub mod core {
+    pub mod config;
+    pub mod profiles;
+    pub mod save;
+}
 
 #[derive(Debug, Parser)]
 #[command(about, version, long_about = None)]
@@ -58,6 +60,20 @@ enum TaskCommands {
 
         #[arg(long, short, help = "Change task importance (requires a task number)")]
         importance: Option<usize>,
+
+        #[arg(
+            long,
+            short,
+            help = "Expire time, for example: 6m (6 month), 1d (1 day), 4h (4 hours), 100s (100 seconds)"
+        )]
+        reccurence: Option<String>,
+
+        #[arg(
+            long,
+            short,
+            help = "Expire time, for example: 6m (6 month), 1d (1 day), 4h (4 hours), 100s (100 seconds)"
+        )]
+        expire: Option<String>,
     },
 
     #[command(about = "Edit a task")]
@@ -114,6 +130,8 @@ pub fn run(args: Args) {
         }
     };
 
+    save.update_profiles();
+
     let config = Config::load(args.config);
 
     let command = match args.command {
@@ -145,12 +163,19 @@ fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config) {
     };
 
     match commands {
-        TaskCommands::Add { add, importance } => save.add(
+        TaskCommands::Add {
+            add,
+            importance,
+            reccurence,
+            expire,
+        } => save.add(
             &add,
             match importance {
                 Some(i) => i,
                 None => config.default_importance,
             },
+            reccurence,
+            expire,
         ),
         TaskCommands::Remove { remove } => save.remove(remove, config.numerate_from_zero),
         TaskCommands::Complete { complete } => save.complete(complete, config.numerate_from_zero),
