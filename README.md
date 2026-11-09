@@ -11,6 +11,7 @@ A simple terminal-based task manager written in Rust for people who prefer the c
 - JSON storage
 - TOML config file
 - Lightweight CLI
+- Task expire and recurrence tasks
 
 
 ## Installation
@@ -53,6 +54,10 @@ WARNING: I don't test Windows builds, if you found there a bug, please make an i
 
 ```tedo tasks edit -t <TARGET> <TEXT>``` --- Edit a task (requires a task number)
 
+```tedo tasks add -e 1h <TEXT>``` --- Create a task, that expire in 1 hour
+
+```tedo tasks add -r 1d <TEXT>``` --- Create a task, that resets every day
+
 
 ## Profiles
 You can collect tasks into *profiles*. This can be very helpful, if you want to divide tasks. For example work and personal tasks. 
@@ -69,7 +74,7 @@ numerate_from_zero = [true/false] # Default: false
 default_importance = [0-5] # Default: 2, the grater the number, the greater the importance.
 
 
-## Bugs or suggestions
+## Feedback
 If you found a bug or have a suggestion you can create an [issue](https://github.com/NopeEnemy/tedo/issues)
 
 
@@ -78,4 +83,4 @@ If you found a bug or have a suggestion you can create an [issue](https://github
 - [X] Profiles
 - [X] Configuration file
 - [X] Tasks priorities
-- [ ] Timer for tasks
+- [X] Timer for tasks
