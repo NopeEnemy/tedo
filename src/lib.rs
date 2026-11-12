@@ -1,4 +1,8 @@
-use crate::core::{config::Config, save::Save};
+use crate::core::{
+    config::{Config, Logs, TaskEvent},
+    profiles::Importance,
+    save::Save,
+};
 use clap::{Parser, Subcommand};
 use std::process;
 
@@ -16,6 +20,9 @@ pub struct Args {
 
     #[arg(short, long, help = "Another path to the config file")]
     config: Option<String>,
+
+    #[arg(long, hide = true)]
+    markdown_help: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -64,9 +71,9 @@ enum TaskCommands {
         #[arg(
             long,
             short,
-            help = "Expire time, for example: 6m (6 month), 1d (1 day), 4h (4 hours), 100s (100 seconds)"
+            help = "Recurrence time, for example: 6m (6 month), 1d (1 day), 4h (4 hours), 100s (100 seconds)"
         )]
-        reccurence: Option<String>,
+        recurrence: Option<String>,
 
         #[arg(
             long,
@@ -86,6 +93,20 @@ enum TaskCommands {
 
         #[arg(long, short, help = "Change task importance (requires a task number)")]
         importance: Option<usize>,
+
+        #[arg(
+            long,
+            short,
+            help = "Recurrence time, for example: 6m (6 month), 1d (1 day), 4h (4 hours), 100s (100 seconds)"
+        )]
+        recurrence: Option<String>,
+
+        #[arg(
+            long,
+            short,
+            help = "Expire time, for example: 6m (6 month), 1d (1 day), 4h (4 hours), 100s (100 seconds)"
+        )]
+        expire: Option<String>,
     },
 
     #[command(about = "Remove a task")]
@@ -130,34 +151,45 @@ pub fn run(args: Args) {
         }
     };
 
+    if args.markdown_help {
+        clap_markdown::print_help_markdown::<Args>();
+        std::process::exit(0);
+    }
+
     save.update_profiles();
 
     let config = Config::load(args.config);
+    let mut logs = Logs::new();
 
     let command = match args.command {
         Some(c) => c,
         None => {
-            save.list(config.show_importance, config.numerate_from_zero);
+            save.list(&config);
             return;
         }
     };
 
     match command {
-        Commands::Tasks { command } => task(&mut save, command, config),
-        Commands::Profiles { command } => profile(&mut save, command),
+        Commands::Tasks { command } => task(&mut save, command, config, &mut logs),
+        Commands::Profiles { command } => profile(&mut save, command, config, &mut logs),
     }
 
     match save.save() {
         Ok(_) => (),
         Err(e) => println!("There is an error by saving: {e}"),
     };
+
+    match logs.write_logs() {
+        Ok(_) => (),
+        Err(e) => eprintln!("There is an error by saving logs: {e}"),
+    }
 }
 
-fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config) {
+fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config, logs: &mut Logs) {
     let commands = match commands {
         Some(c) => c,
         None => {
-            save.list(config.show_importance, config.numerate_from_zero);
+            save.list(&config);
             return;
         }
     };
@@ -166,34 +198,112 @@ fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config) {
         TaskCommands::Add {
             add,
             importance,
-            reccurence,
+            recurrence,
             expire,
-        } => save.add(
-            &add,
-            match importance {
-                Some(i) => i,
-                None => config.default_importance,
-            },
-            reccurence,
-            expire,
-        ),
-        TaskCommands::Remove { remove } => save.remove(remove, config.numerate_from_zero),
-        TaskCommands::Complete { complete } => save.complete(complete, config.numerate_from_zero),
+        } => {
+            save.add(
+                &add,
+                match importance {
+                    Some(i) => i,
+                    None => config.default_importance,
+                },
+                recurrence,
+                expire,
+            );
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::AddTask {
+                    profile: save.get_current_profile(),
+                    name: add,
+                    importance: Importance::new(importance.unwrap_or(config.default_importance)),
+                },
+            );
+        }
+        TaskCommands::Remove { remove } => {
+            save.remove(remove, config.numerate_from_zero);
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::RemoveTask {
+                    profile: save.get_current_profile(),
+                    name: save.get_task_name_from_id(remove),
+                },
+            )
+        }
+        TaskCommands::Complete { complete } => {
+            save.complete(complete, config.numerate_from_zero);
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::ChangeTask {
+                    profile: save.get_current_profile(),
+                    name: save.get_task_name_from_id(complete),
+                    complete: save.get_task_from_id(complete).complete,
+                },
+            );
+        }
         TaskCommands::Edit {
             edit,
             target,
             importance,
-        } => save.edit(target, edit, importance, config.numerate_from_zero),
-        TaskCommands::List => save.list(config.show_importance, config.numerate_from_zero),
-        TaskCommands::Clear => save.clear(),
-        TaskCommands::RemoveCompleted => save.remove_completed(),
-        TaskCommands::CompleteAll => save.complete_all(),
-        TaskCommands::DecompleteAll => save.decomplete_all(),
-        TaskCommands::ChangeAll => save.change_all(),
+            expire,
+            recurrence,
+        } => save.edit(
+            target,
+            edit,
+            importance,
+            expire,
+            recurrence,
+            config.numerate_from_zero,
+        ),
+        TaskCommands::List => save.list(&config),
+        TaskCommands::Clear => {
+            save.clear();
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::Clear {
+                    profile: save.get_current_profile(),
+                },
+            );
+        }
+        TaskCommands::RemoveCompleted => {
+            save.remove_completed();
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::RemoveCompleted {
+                    profile: save.get_current_profile(),
+                },
+            );
+        }
+        TaskCommands::CompleteAll => {
+            save.complete_all();
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::CompleteAll {
+                    profile: save.get_current_profile(),
+                },
+            );
+        }
+        TaskCommands::DecompleteAll => {
+            save.decomplete_all();
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::DecompleteAll {
+                    profile: save.get_current_profile(),
+                },
+            )
+        }
+        TaskCommands::ChangeAll => {
+            save.change_all();
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::ReverseAll {
+                    profile: save.get_current_profile(),
+                },
+            )
+        }
     }
 }
 
-fn profile(save: &mut Save, commands: Option<ProfileCommands>) {
+fn profile(save: &mut Save, commands: Option<ProfileCommands>, config: Config, logs: &mut Logs) {
     let commands = match commands {
         Some(c) => c,
         None => {
@@ -204,7 +314,23 @@ fn profile(save: &mut Save, commands: Option<ProfileCommands>) {
 
     match commands {
         ProfileCommands::List => save.list_profiles(),
-        ProfileCommands::Remove { remove_profile } => save.remove_profile(&remove_profile),
-        ProfileCommands::Set { set_profile } => save.set_profile(&set_profile),
+        ProfileCommands::Remove { remove_profile } => {
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::RemoveProfile {
+                    profile: remove_profile.clone(),
+                },
+            );
+            save.remove_profile(&remove_profile);
+        }
+        ProfileCommands::Set { set_profile } => {
+            save.set_profile(&set_profile);
+            logs.write_log(
+                config.write_task_logs,
+                TaskEvent::SetProfile {
+                    profile: set_profile,
+                },
+            );
+        }
     }
 }

@@ -7,6 +7,8 @@ use std::process;
 use std::fmt::Display;
 use std::time::{Duration, SystemTime};
 
+use crate::core::config::Config;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Importance {
     VeryHigh,
@@ -46,12 +48,12 @@ impl Display for Importance {
 
 #[derive(PartialEq, Debug, Serialize, Clone, Deserialize)]
 enum TaskTimerType {
-    Reccurence,
+    Recurrence,
     Expire,
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
-struct TaskTimer {
+pub struct TaskTimer {
     timer_type: TaskTimerType,
     next: SystemTime,
     duration: Duration,
@@ -83,14 +85,14 @@ impl TaskTimer {
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct ToDo {
-    field: String,
-    complete: bool,
+    pub field: String,
+    pub complete: bool,
     importance: Importance,
     task_timer: Option<TaskTimer>,
 }
 
 impl ToDo {
-    fn new(s: &str, importance: usize, task_timer: Option<TaskTimer>) -> ToDo {
+    pub fn new(s: &str, importance: usize, task_timer: Option<TaskTimer>) -> ToDo {
         Self {
             field: s.to_string(),
             complete: false,
@@ -100,7 +102,6 @@ impl ToDo {
     }
 
     fn update(&mut self) {
-        println!("UPDATE CALLED");
         if let Some(timer) = &mut self.task_timer {
             if timer.timer_type == TaskTimerType::Expire {
                 timer.next = SystemTime::now() + timer.duration;
@@ -126,74 +127,100 @@ impl Profile {
     pub fn update(&mut self) {
         for i in &mut self.content {
             if let Some(timer) = &mut i.task_timer {
-                if timer.timer_type == TaskTimerType::Reccurence {
+                if timer.timer_type == TaskTimerType::Recurrence {
                     i.update();
                 }
             }
         }
     }
 
-    pub fn list(&self, show_importance: bool, numerate_from_zero: bool) {
-        let mut str = format!("Profile '{}':\n\n", self.name);
-        let mut num = if numerate_from_zero { 0 } else { 1 };
+    pub fn match_task(&self, task: &ToDo, config: &Config, num: usize) -> String {
+        let buf = if task.complete {
+            "[ X ]".to_string()
+        } else {
+            "[   ]".to_string()
+        };
 
-        for i in &self.content {
-            let buf = if i.complete {
-                "[ X ]".to_string()
-            } else {
-                "[   ]".to_string()
-            };
-
-            let buf = if show_importance {
-                match &i.task_timer {
-                    Some(t) => match t.timer_type {
-                        TaskTimerType::Expire => {
+        if config.show_importance {
+            match &task.task_timer {
+                Some(t) => match t.timer_type {
+                    TaskTimerType::Expire => {
+                        if config.ignore_expire {
+                            format!("{num}. {} {buf} {}\n", task.importance, task.field)
+                        } else {
                             if SystemTime::now() > t.next {
-                                format!("{num}. {} | Expired {buf} {}\n", i.importance, i.field)
+                                format!(
+                                    "{num}. {} | Expired {buf} {}\n",
+                                    task.importance, task.field
+                                )
                             } else {
                                 format!(
                                     "{num}. {} | Expires in: {} {buf} {}\n",
-                                    i.importance,
+                                    task.importance,
                                     t.human_format(),
-                                    i.field
+                                    task.field
                                 )
                             }
                         }
-                        TaskTimerType::Reccurence => {
+                    }
+                    TaskTimerType::Recurrence => {
+                        if config.ignore_recurrence {
+                            format!("{num}. {} {buf} {}\n", task.importance, task.field)
+                        } else {
                             format!(
                                 "{num}. {} | Resets in: {} {buf} {}\n",
-                                i.importance,
+                                task.importance,
                                 t.human_format(),
-                                i.field
+                                task.field
                             )
                         }
-                    },
+                    }
+                },
 
-                    None => format!("{num}. {} {buf} {}\n", i.importance, i.field),
-                }
-            } else {
-                match &i.task_timer {
-                    Some(t) => match t.timer_type {
-                        TaskTimerType::Expire => {
+                None => format!("{num}. {} {buf} {}\n", task.importance, task.field),
+            }
+        } else {
+            match &task.task_timer {
+                Some(t) => match t.timer_type {
+                    TaskTimerType::Expire => {
+                        if config.ignore_expire {
+                            format!("{num}. {buf} {}\n", task.field)
+                        } else {
                             if SystemTime::now() > t.next {
-                                format!("{num}. Expired {buf} {}\n", i.field)
+                                format!("{num}. Expired {buf} {}\n", task.field)
                             } else {
                                 format!(
                                     "{num}. Expires in: {} {buf} {}\n",
                                     t.human_format(),
-                                    i.field
+                                    task.field
                                 )
                             }
                         }
-                        TaskTimerType::Reccurence => {
-                            format!("{num}. Resets in: {} {buf} {}\n", t.human_format(), i.field)
+                    }
+                    TaskTimerType::Recurrence => {
+                        if config.ignore_recurrence {
+                            format!("{num}. {buf} {}\n", task.field)
+                        } else {
+                            format!(
+                                "{num}. Resets in: {} {buf} {}\n",
+                                t.human_format(),
+                                task.field
+                            )
                         }
-                    },
+                    }
+                },
 
-                    None => format!("{num}. {buf} {}\n", i.field),
-                }
-            };
+                None => format!("{num}. {buf} {}\n", task.field),
+            }
+        }
+    }
 
+    pub fn list(&self, config: &Config) {
+        let mut str = format!("Profile '{}':\n\n", self.name);
+        let mut num = if config.numerate_from_zero { 0 } else { 1 };
+
+        for i in &self.content {
+            let buf = self.match_task(i, config, num);
             str.push_str(&buf);
 
             num += 1;
@@ -206,11 +233,11 @@ impl Profile {
         &mut self,
         text: &str,
         importance: usize,
-        reccurence: Option<String>,
+        recurrence: Option<String>,
         expire: Option<String>,
     ) {
-        if reccurence.is_some() && expire.is_some() {
-            eprintln!("The task cannot have a reccurence and expire");
+        if recurrence.is_some() && expire.is_some() {
+            eprintln!("The task cannot have a recurrence and expire");
             process::exit(1);
         }
 
@@ -222,9 +249,9 @@ impl Profile {
                     process::exit(1);
                 }
             }
-        } else if let Some(reccurence) = reccurence {
-            match duration_str::parse(reccurence) {
-                Ok(d) => Some(TaskTimer::new(TaskTimerType::Reccurence, d)),
+        } else if let Some(recurrence) = recurrence {
+            match duration_str::parse(recurrence) {
+                Ok(d) => Some(TaskTimer::new(TaskTimerType::Recurrence, d)),
                 Err(e) => {
                     eprintln!("Cannot parse duration from task expire: {e}");
                     process::exit(1);
@@ -242,6 +269,8 @@ impl Profile {
         target: usize,
         text: Option<String>,
         importance: Option<usize>,
+        expire: Option<String>,
+        recurrence: Option<String>,
         numerate_from_zero: bool,
     ) {
         let target = if numerate_from_zero {
@@ -258,6 +287,33 @@ impl Profile {
 
                 if let Some(i) = importance {
                     t.importance = Importance::new(i);
+                }
+
+                if expire.is_some() && recurrence.is_some() {
+                    eprintln!("Can not set expire and recurrence together");
+                    process::exit(1);
+                } else if let Some(e) = expire {
+                    t.task_timer = Some(TaskTimer::new(
+                        TaskTimerType::Expire,
+                        match duration_str::parse(e) {
+                            Ok(e) => e,
+                            Err(e) => {
+                                eprintln!("Can not parse duration: {e}");
+                                process::exit(1)
+                            }
+                        },
+                    ))
+                } else if let Some(r) = recurrence {
+                    t.task_timer = Some(TaskTimer::new(
+                        TaskTimerType::Recurrence,
+                        match duration_str::parse(r) {
+                            Ok(r) => r,
+                            Err(e) => {
+                                eprintln!("Can not parse duration: {e}");
+                                process::exit(1)
+                            }
+                        },
+                    ))
                 }
             }
             None => eprintln!("Can not find a task with this number"),

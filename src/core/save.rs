@@ -1,4 +1,5 @@
-use crate::core::profiles::Profile;
+use crate::core::config::Config;
+use crate::core::profiles::{Profile, ToDo};
 use serde::{Deserialize, Serialize};
 use serde_json::{from_str, to_string};
 use std::fmt::Debug;
@@ -18,18 +19,36 @@ pub struct Save {
 impl Save {
     // Actions with current profile:
 
-    pub fn list(&mut self, show_importance: bool, numerate_from_zero: bool) {
-        self.profiles[self.current_profile].list(show_importance, numerate_from_zero);
+    pub fn get_current_profile(&self) -> String {
+        self.profiles[self.current_profile].name.clone()
+    }
+
+    pub fn get_task_name_from_id(&self, id: usize) -> String {
+        match self.profiles[self.current_profile].content.get(id) {
+            Some(s) => s.field.clone(),
+            None => "Undefined".to_string(),
+        }
+    }
+
+    pub fn get_task_from_id(&self, id: usize) -> ToDo {
+        match self.profiles[self.current_profile].content.get(id) {
+            Some(s) => s.clone(),
+            None => ToDo::new("Undefined", 0, None),
+        }
+    }
+
+    pub fn list(&mut self, config: &Config) {
+        self.profiles[self.current_profile].list(config);
     }
 
     pub fn add(
         &mut self,
         text: &str,
         importance: usize,
-        reccurence: Option<String>,
+        recurrence: Option<String>,
         expire: Option<String>,
     ) {
-        self.profiles[self.current_profile].add(text, importance, reccurence, expire);
+        self.profiles[self.current_profile].add(text, importance, recurrence, expire);
     }
 
     pub fn edit(
@@ -37,9 +56,18 @@ impl Save {
         target: usize,
         text: Option<String>,
         importance: Option<usize>,
+        expire: Option<String>,
+        recurrence: Option<String>,
         numerate_from_zero: bool,
     ) {
-        self.profiles[self.current_profile].edit(target, text, importance, numerate_from_zero);
+        self.profiles[self.current_profile].edit(
+            target,
+            text,
+            importance,
+            expire,
+            recurrence,
+            numerate_from_zero,
+        );
     }
 
     pub fn importance(&mut self, target: usize, importance: usize, numerate_from_zero: bool) {

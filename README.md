@@ -68,11 +68,10 @@ The app stores all data in ~/.local/share/tedo/save.json file. Please do not cha
 
 
 ## Configuration
-You can configure a few setting in ~/.config/tedo/config.toml file. Yet you can configure only 2 parameters (I plan to add more in the future): 
-show_importance = [true/false] # Default: true
-numerate_from_zero = [true/false] # Default: false
-default_importance = [0-5] # Default: 2, the grater the number, the greater the importance.
+You can configure a few setting in ~/.config/tedo/config.toml or AppData\\Roaming\\tedo\\config.tom file. Yet you can see all configure options [here](https://github.com/NopeEnemy/tedo/wiki/Configuration)
 
+## Logs:
+If you have write_tasks_logs = true in your config, Tedo will write logs in ~/.cache/tedo/tedo.log or in AppData\\Local\\tedo\\tedo.log
 
 ## Feedback
 If you found a bug or have a suggestion you can create an [issue](https://github.com/NopeEnemy/tedo/issues)
@@ -84,3 +83,8 @@ If you found a bug or have a suggestion you can create an [issue](https://github
 - [X] Configuration file
 - [X] Tasks priorities
 - [X] Timer for tasks
+- [X] Task logs
+- [ ] Undo option
+- [ ] Filter settings
+- [ ] Tags
+- [ ] Search
