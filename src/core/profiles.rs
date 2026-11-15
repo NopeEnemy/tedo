@@ -1,5 +1,6 @@
 use duration_str::HumanFormat;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::ops::Add;
 use std::process;
@@ -7,9 +8,10 @@ use std::process;
 use std::fmt::Display;
 use std::time::{Duration, SystemTime};
 
+use crate::Sort;
 use crate::core::config::Config;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Serialize, Deserialize, Clone)]
 pub enum Importance {
     VeryHigh,
     High,
@@ -28,6 +30,16 @@ impl Importance {
             _ => Importance::VeryHigh,
         }
     }
+
+    pub fn to_num(&self) -> usize {
+        match self {
+            Importance::Zero => 0,
+            Importance::Low => 1,
+            Importance::Middle => 2,
+            Importance::High => 3,
+            Importance::VeryHigh => 4,
+        }
+    }
 }
 
 impl Display for Importance {
@@ -43,6 +55,30 @@ impl Display for Importance {
         }
 
         write!(f, "{text}")
+    }
+}
+
+impl Ord for Importance {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.to_num().cmp(&self.to_num())
+    }
+    fn clamp(self, min: Self, max: Self) -> Self
+    where
+        Self: Sized,
+    {
+        Importance::new(self.to_num().clamp(min.to_num(), max.to_num()))
+    }
+    fn max(self, other: Self) -> Self
+    where
+        Self: Sized,
+    {
+        Importance::new(self.to_num().max(other.to_num()))
+    }
+    fn min(self, other: Self) -> Self
+    where
+        Self: Sized,
+    {
+        Importance::new(self.to_num().min(other.to_num()))
     }
 }
 
@@ -215,11 +251,38 @@ impl Profile {
         }
     }
 
-    pub fn list(&self, config: &Config) {
+    pub fn list(&self, config: &Config, sort: Option<Sort>, reverse: bool) {
         let mut str = format!("Profile '{}':\n\n", self.name);
         let mut num = if config.numerate_from_zero { 0 } else { 1 };
 
-        for i in &self.content {
+        let tasks = match sort {
+            Some(t) => match t {
+                Sort::Importance => {
+                    let mut s = self.content.clone();
+                    s.sort_by(|a, b| a.importance.cmp(&b.importance));
+                    s
+                }
+                Sort::Date => self.content.clone(),
+            },
+            None => match config.default_sort {
+                Sort::Importance => {
+                    let mut s = self.content.clone();
+                    s.sort_by(|a, b| a.importance.cmp(&b.importance));
+                    s
+                }
+                Sort::Date => self.content.clone(),
+            },
+        };
+
+        let tasks = if reverse || config.reverse_by_default {
+            let mut t = tasks;
+            t.reverse();
+            t
+        } else {
+            tasks
+        };
+
+        for i in &tasks {
             let buf = self.match_task(i, config, num);
             str.push_str(&buf);
 

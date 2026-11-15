@@ -7,6 +7,7 @@ use std::{fs::File, io::Read};
 
 use chrono::Local;
 
+use crate::Sort;
 use crate::core::profiles::Importance;
 
 #[derive(Debug, Deserialize, Serialize, Default)]
@@ -23,6 +24,10 @@ pub struct Config {
     pub ignore_recurrence: bool,
     #[serde(default)]
     pub ignore_expire: bool,
+    #[serde(default)]
+    pub reverse_by_default: bool,
+    #[serde(default)]
+    pub default_sort: Sort,
 }
 
 impl Config {

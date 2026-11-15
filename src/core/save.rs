@@ -1,3 +1,4 @@
+use crate::Sort;
 use crate::core::config::Config;
 use crate::core::profiles::{Profile, ToDo};
 use serde::{Deserialize, Serialize};
@@ -37,8 +38,8 @@ impl Save {
         }
     }
 
-    pub fn list(&mut self, config: &Config) {
-        self.profiles[self.current_profile].list(config);
+    pub fn list(&mut self, config: &Config, sort: Option<Sort>, reverse: bool) {
+        self.profiles[self.current_profile].list(config, sort, reverse);
     }
 
     pub fn add(

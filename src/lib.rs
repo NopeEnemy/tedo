@@ -4,7 +4,8 @@ use crate::core::{
     save::Save,
 };
 use clap::{Parser, Subcommand};
-use std::process;
+use serde::{Deserialize, Serialize};
+use std::{process, str::FromStr};
 
 pub mod core {
     pub mod config;
@@ -122,7 +123,13 @@ enum TaskCommands {
     },
 
     #[command(about = "List all tasks in current profile")]
-    List,
+    List {
+        #[arg(long, short, help = "Sort tasks by importance/date/time", value_enum)]
+        sort: Option<Sort>,
+
+        #[arg(long, short, help = "Reverse sort direction", default_value_t = false)]
+        reverse: bool,
+    },
 
     #[command(about = "Remove all completed tasks in current profile")]
     RemoveCompleted,
@@ -138,6 +145,35 @@ enum TaskCommands {
 
     #[command(about = "Reverse importance from all tasks")]
     ChangeAll,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub enum Sort {
+    Importance,
+    #[default]
+    Date,
+}
+
+impl FromStr for Sort {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Importance" => Ok(Self::Importance),
+            "importance" => Ok(Self::Importance),
+            "i" => Ok(Self::Importance),
+            "Priority" => Ok(Self::Importance),
+            "priority" => Ok(Self::Importance),
+            "p" => Ok(Self::Importance),
+
+            "Date" => Ok(Self::Date),
+            "date" => Ok(Self::Date),
+            "d" => Ok(Self::Date),
+
+            _ => Err(
+                "\n\nCannot parse sort type.\nUse Importance, importance, i, Priority, priority or p for importance.\nUse Date, date or d for date.".to_string(),
+            ),
+        }
+    }
 }
 
 pub fn run(args: Args) {
@@ -164,7 +200,7 @@ pub fn run(args: Args) {
     let command = match args.command {
         Some(c) => c,
         None => {
-            save.list(&config);
+            save.list(&config, None, false);
             return;
         }
     };
@@ -189,7 +225,7 @@ fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config, logs: &
     let commands = match commands {
         Some(c) => c,
         None => {
-            save.list(&config);
+            save.list(&config, None, false);
             return;
         }
     };
@@ -254,7 +290,7 @@ fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config, logs: &
             recurrence,
             config.numerate_from_zero,
         ),
-        TaskCommands::List => save.list(&config),
+        TaskCommands::List { sort, reverse } => save.list(&config, sort, reverse),
         TaskCommands::Clear => {
             save.clear();
             logs.write_log(
