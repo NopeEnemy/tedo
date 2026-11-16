@@ -38,6 +38,7 @@ impl Config {
                 .expect("Can not find configs dir")
                 .join("tedo")
                 .join("config.toml")
+                .into_os_string()
                 .into_string()
                 .expect("Can not parse path to the configs directory"),
         };
