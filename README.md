@@ -2,7 +2,7 @@
 [![crates.io](https://img.shields.io/crates/d/tedo.svg)](https://crates.io/crates/tedo)
 
 # TEDO
-A simple terminal-based task manager written in Rust for people who prefer the command line over GUIs.
+A simple terminal-based task manager written in Rust, without any AIs for people who prefer the command line over GUIs.
 
 
 ## Features
@@ -84,7 +84,7 @@ If you found a bug or have a suggestion you can create an [issue](https://github
 - [X] Tasks priorities
 - [X] Timer for tasks
 - [X] Task logs
-- [ ] Undo option
-- [ ] Filter settings
+- [X] Undo option
+- [X] Filter settings
 - [ ] Tags
 - [ ] Search

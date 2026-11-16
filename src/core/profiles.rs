@@ -88,7 +88,7 @@ enum TaskTimerType {
     Expire,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub struct TaskTimer {
     timer_type: TaskTimerType,
     next: SystemTime,
@@ -119,7 +119,7 @@ impl TaskTimer {
     }
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Clone, Deserialize)]
 pub struct ToDo {
     pub field: String,
     pub complete: bool,
@@ -153,7 +153,7 @@ impl ToDo {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Profile {
     pub name: String,
     pub content: Vec<ToDo>,

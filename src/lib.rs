@@ -39,6 +39,9 @@ enum Commands {
         #[command(subcommand)]
         command: Option<ProfileCommands>,
     },
+
+    #[command(about = "Undo the latest change")]
+    Undo,
 }
 
 #[derive(Debug, Subcommand)]
@@ -192,7 +195,10 @@ pub fn run(args: Args) {
         std::process::exit(0);
     }
 
-    save.update_profiles();
+    if let Some(Commands::Undo) = args.command {
+    } else {
+        save.update_profiles();
+    }
 
     let config = Config::load(args.config);
     let mut logs = Logs::new();
@@ -208,6 +214,7 @@ pub fn run(args: Args) {
     match command {
         Commands::Tasks { command } => task(&mut save, command, config, &mut logs),
         Commands::Profiles { command } => profile(&mut save, command, config, &mut logs),
+        Commands::Undo => undo(&mut save, config, &mut logs),
     }
 
     match save.save() {
@@ -369,4 +376,18 @@ fn profile(save: &mut Save, commands: Option<ProfileCommands>, config: Config, l
             );
         }
     }
+}
+
+fn undo(save: &mut Save, config: Config, logs: &mut Logs) {
+    let latest = match save.latest_change {
+        Some(ref l) => l,
+        None => {
+            eprintln!("Already at latest change");
+            process::exit(0);
+        }
+    };
+
+    logs.write_log(config.write_task_logs, TaskEvent::Undo);
+
+    *save = *latest.clone();
 }

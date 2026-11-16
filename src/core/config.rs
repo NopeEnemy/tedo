@@ -117,6 +117,8 @@ pub enum TaskEvent {
     RemoveProfile {
         profile: String,
     },
+
+    Undo,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -199,6 +201,10 @@ impl Logs {
                     "{} Removed the {} profile!\n",
                     Local::now().format("[%Y.%-m.%-d %H:%M]"),
                     profile
+                )),
+                TaskEvent::Undo => logs.push_str(&format!(
+                    "{} Undo",
+                    Local::now().format("[%Y.%-m.%-d %H:%M]"),
                 )),
             }
         }

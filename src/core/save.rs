@@ -11,10 +11,12 @@ use std::{
     io::{Error, ErrorKind, Read},
 };
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Save {
     current_profile: usize,
-    profiles: Vec<Profile>,
+    pub profiles: Vec<Profile>,
+    #[serde(default)]
+    pub latest_change: Option<Box<Save>>,
 }
 
 impl Save {
@@ -108,6 +110,7 @@ impl Save {
         Self {
             current_profile: 0,
             profiles: vec![Profile::new("Tasks")],
+            latest_change: None,
         }
     }
 
@@ -214,6 +217,21 @@ impl Save {
     pub fn update_profiles(&mut self) {
         for i in self.profiles.iter_mut() {
             i.update();
+        }
+
+        let latest = match &mut self.latest_change {
+            Some(l) => {
+                if l.profiles != self.profiles {
+                    Some(Box::new(self.to_owned()))
+                } else {
+                    None
+                }
+            }
+            None => Some(Box::new(self.clone())),
+        };
+
+        if let Some(l) = latest {
+            self.latest_change = Some(l);
         }
     }
 }
