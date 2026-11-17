@@ -234,4 +234,29 @@ impl Save {
             self.latest_change = Some(l);
         }
     }
+
+    pub fn search(
+        &self,
+        text: &str,
+        profiles: Option<Vec<String>>,
+        config: &Config,
+        ignore_case: Option<bool>,
+    ) {
+        match profiles {
+            Some(p) => {
+                for i in &self.profiles {
+                    for j in &p {
+                        if &i.name == j {
+                            i.search(text, config, ignore_case);
+                        }
+                    }
+                }
+            }
+            None => {
+                for i in &self.profiles {
+                    i.search(text, config, ignore_case);
+                }
+            }
+        }
+    }
 }

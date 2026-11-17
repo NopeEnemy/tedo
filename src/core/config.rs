@@ -28,6 +28,8 @@ pub struct Config {
     pub reverse_by_default: bool,
     #[serde(default)]
     pub default_sort: Sort,
+    #[serde(default)]
+    pub ignore_case_by_search: bool,
 }
 
 impl Config {

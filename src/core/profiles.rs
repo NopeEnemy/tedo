@@ -458,6 +458,33 @@ impl Profile {
             .for_each(|t| t.complete = !t.complete);
     }
 
+    pub fn search(&self, text: &str, config: &Config, ignore_case: Option<bool>) {
+        let text = match ignore_case {
+            Some(c) => {
+                if c {
+                    text.to_lowercase()
+                } else {
+                    text.to_string()
+                }
+            }
+            None => {
+                if config.ignore_case_by_search {
+                    text.to_lowercase()
+                } else {
+                    text.to_string()
+                }
+            }
+        };
+        for i in &self.content {
+            if i.field.to_lowercase().contains(&text) {
+                println!(
+                    "Task '{}' in profile '{}':\nIs completed: {}\nImportance: {}\n",
+                    i.field, self.name, i.complete, i.importance
+                );
+            }
+        }
+    }
+
     // Self:
     pub fn new(profile_name: &str) -> Self {
         Self {

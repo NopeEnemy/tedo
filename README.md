@@ -86,5 +86,4 @@ If you found a bug or have a suggestion you can create an [issue](https://github
 - [X] Task logs
 - [X] Undo option
 - [X] Filter settings
-- [ ] Tags
-- [ ] Search
+- [X] Search

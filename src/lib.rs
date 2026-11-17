@@ -148,6 +148,23 @@ enum TaskCommands {
 
     #[command(about = "Reverse importance from all tasks")]
     ChangeAll,
+
+    #[command(about = "Search in profiles")]
+    Search {
+        text: String,
+        #[arg(
+            short,
+            long,
+            help = "Profiles for search. It can be used multiple times, for example: tedo tasks search --profile Tasks --profile Ideas TEXT"
+        )]
+        profile: Option<Vec<String>>,
+        #[arg(
+            short,
+            long,
+            help = "Ignore case by searching. Default can be set in the config file"
+        )]
+        ignore_case: Option<bool>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -343,6 +360,11 @@ fn task(save: &mut Save, commands: Option<TaskCommands>, config: Config, logs: &
                 },
             )
         }
+        TaskCommands::Search {
+            text,
+            profile,
+            ignore_case,
+        } => save.search(&text, profile, &config, ignore_case),
     }
 }
 

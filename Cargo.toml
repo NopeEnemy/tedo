@@ -1,12 +1,12 @@
 [package]
 name = "tedo"
-version = "2.3.0"
+version = "2.4.0"
 edition = "2024"
 description = "Tedo is a simple terminal TO-DO manager for people who don't like GUIs."
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/NopeEnemy/tedo"
-keywords = ["cli", "tool", "to-do", "tasks"]
+keywords = ["cli", "tool", "to-do", "tasks", "todo", "task-manager"]
 categories = ["command-line-utilities"]
 
 [[bin]]
